@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurnoverLedger — Turnover Inspection</title>
+<style>
+  :root{
+    --ink:#17263a; --muted:#5a6b80; --brand:#0e7a5f; --brand-dark:#0a5c48;
+    --bg:#f6f8fa; --card:#ffffff; --line:#dde4ea; --accent:#e8f4f0;
+    --warn-bg:#fdf0e6; --warn-ink:#8a4b12; --warn-line:#f0c491;
+    --bad-bg:#fdecec; --bad-ink:#9f2727;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg); color:var(--ink); line-height:1.5;}
+  .wrap{max-width:1020px; margin:0 auto; padding:0 20px 48px;}
+  header{background:var(--ink); color:#fff; margin-bottom:28px;}
+  header .inner{max-width:1020px; margin:0 auto; padding:16px 20px; display:flex;
+                align-items:center; justify-content:space-between;}
+  .logo{font-size:22px; font-weight:800;}
+  .logo span{color:#3ecfaa;}
+  .logo-tag{font-size:12px; font-weight:600; letter-spacing:.4px; color:#9fb4c6; margin-top:1px;}
+  header a{color:#fff; text-decoration:none; font-weight:600; font-size:15px;}
+  header a:hover{text-decoration:underline;}
+  h1{font-size:26px; margin-bottom:4px;}
+  .sub{color:var(--muted); margin-bottom:22px;}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:22px;}
+  .card h2{font-size:18px; margin-bottom:16px;}
+  .card h2 .pro-tag{display:inline-block; background:var(--ink); color:#fff; font-size:11px;
+                    font-weight:800; letter-spacing:.4px; padding:2px 8px; border-radius:20px;
+                    vertical-align:middle; margin-left:8px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:14px; font-weight:600; margin-bottom:5px;}
+  .field .hint{font-weight:400; color:var(--muted); font-size:12.5px;}
+  .field input[type=text], .field input[type=number], .field input[type=email], .field input[type=tel],
+  .field input[type=datetime-local], .field textarea, .field select{
+    width:100%; padding:10px 12px; font-size:16px; border:1px solid var(--line);
+    border-radius:7px; background:#fff; color:var(--ink);}
+  .field input:focus, .field textarea:focus, .field select:focus{outline:2px solid var(--brand); outline-offset:0; border-color:var(--brand);}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .check{display:flex; align-items:flex-start; gap:9px; padding:7px 0; font-size:15.5px; cursor:pointer;}
+  .check input{width:20px; height:20px; margin-top:2px; accent-color:var(--brand); flex:none;}
+  .check.done span{color:var(--muted); text-decoration:line-through;}
+  .result-row{display:flex; justify-content:space-between; align-items:baseline;
+              padding:9px 0; border-bottom:1px solid var(--line); font-size:15.5px;}
+  .result-row:last-of-type{border-bottom:none;}
+  .result-row .lbl{color:var(--muted);}
+  .result-row .val{font-weight:700; font-variant-numeric:tabular-nums;}
+  .result-row.big{padding:14px 0;}
+  .result-row.big .lbl{color:var(--ink); font-weight:700; font-size:17px;}
+  .result-row.big .val{font-size:26px; color:var(--brand-dark);}
+  .warning{display:none; background:var(--warn-bg); border:1px solid var(--warn-line);
+           color:var(--warn-ink); border-radius:8px; padding:12px 14px; font-size:14.5px; margin-top:14px;}
+  .btn{display:inline-block; padding:12px 22px; border-radius:8px; font-size:16px; font-weight:700;
+       border:2px solid transparent; cursor:pointer; text-decoration:none; text-align:center;}
+  .btn-primary{background:var(--brand); color:#fff; width:100%;}
+  .btn-primary:hover{background:var(--brand-dark);}
+  .btn-ghost{background:#fff; color:var(--brand-dark); border-color:var(--brand);}
+  .btn-ghost:hover{background:var(--accent);}
+  .btn-small{padding:6px 12px; font-size:13.5px; border-radius:6px;}
+  .btn[disabled]{opacity:.45; cursor:not-allowed;}
+  .stack{display:grid; gap:20px;}
+  .fineprint{color:var(--muted); font-size:13px; margin-top:12px;}
+  .data-note{background:var(--warn-bg); border:1px solid var(--warn-line); color:var(--warn-ink);
+             border-radius:8px; padding:12px 14px; font-size:14.5px;}
+  .data-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;}
+  /* Rooms */
+  .room{border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:16px; background:#fff;}
+  .room-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px;}
+  .room-head h3{font-size:17px;}
+  .room-pct{font-weight:700; color:var(--muted); font-size:14px; font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .room-pct.full{color:var(--brand-dark);}
+  .room .note{width:100%; padding:9px 11px; font-size:15px; border:1px solid var(--line); border-radius:7px; margin-top:8px;}
+  .ready-toggle{display:flex; align-items:center; gap:9px; margin-top:12px; padding:10px 12px;
+                border-radius:8px; background:var(--bg); cursor:pointer; font-weight:700; font-size:15px;}
+  .ready-toggle input{width:20px; height:20px; accent-color:var(--brand); flex:none;}
+  .ready-toggle.on{background:var(--accent); color:var(--brand-dark);}
+  /* Room sign-off: Ready / Not ready / N/A segmented control */
+  .ready-control{display:flex; gap:6px; margin-top:12px;}
+  .ready-control .rb{flex:1; padding:9px 6px; border-radius:8px; border:1.5px solid var(--line);
+                     background:#fff; font-weight:700; font-size:14px; cursor:pointer; color:var(--muted);}
+  .ready-control .rb.on-ready{background:var(--accent); border-color:var(--brand); color:var(--brand-dark);}
+  .ready-control .rb.on-notready{background:var(--bad-bg); border-color:#e5a3a3; color:var(--bad-ink);}
+  .ready-control .rb.on-na{background:#eef2f6; border-color:#b9c6d2; color:var(--ink);}
+  /* Task rows with an N/A toggle */
+  .check-row{display:flex; align-items:flex-start; gap:8px;}
+  .check-row .check{flex:1; min-width:0;}
+  .check.na span{color:var(--muted); font-style:italic;}
+  .na-btn{flex:none; margin-top:6px; padding:3px 9px; font-size:12px; font-weight:800; letter-spacing:.3px;
+          border-radius:20px; border:1.5px solid var(--line); background:#fff; color:var(--muted); cursor:pointer;}
+  .na-btn.on{background:#eef2f6; border-color:#b9c6d2; color:var(--ink);}
+  .issue-item.resolved{opacity:.62;}
+  .pack-note{flex-basis:100%; color:var(--brand-dark); font-weight:600;}
+  .photos{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+  .thumb{position:relative; width:76px; height:76px; border-radius:8px; overflow:hidden; border:1px solid var(--line); background:var(--bg);}
+  .thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .thumb button{position:absolute; top:2px; right:2px; width:22px; height:22px; border-radius:50%;
+                border:none; background:rgba(23,38,58,.85); color:#fff; font-size:13px; line-height:1; cursor:pointer;}
+  .photo-add{display:inline-block; margin-top:10px; font-size:14px; font-weight:700; color:var(--brand-dark);
+             border:1.5px dashed var(--brand); border-radius:8px; padding:8px 14px; cursor:pointer;}
+  /* Chips */
+  .chip{font-size:11.5px; font-weight:800; letter-spacing:.3px; padding:2px 8px; border-radius:20px; white-space:nowrap;}
+  .chip-ready{background:var(--accent); color:var(--brand-dark);}
+  .chip-notready{background:var(--bad-bg); color:var(--bad-ink);}
+  .chip-sev-Low{background:#eef2f6; color:var(--muted);}
+  .chip-sev-Medium{background:var(--warn-bg); color:var(--warn-ink);}
+  .chip-sev-High{background:var(--bad-bg); color:var(--bad-ink);}
+  .verdict-big{font-size:21px; font-weight:800;}
+  .verdict-big.yes{color:var(--brand-dark);}
+  .verdict-big.no{color:var(--bad-ink);}
+  /* Saved items / history / issues */
+  .saved-list{margin-top:14px;}
+  .saved-item{display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  .saved-item:last-child{border-bottom:none;}
+  .saved-item .name{flex:1; min-width:120px; font-weight:600; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .saved-item .meta{color:var(--muted); font-size:12.5px;}
+  .empty-note{color:var(--muted); font-size:14.5px;}
+  .issue-item{display:flex; gap:8px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  .issue-item:last-child{border-bottom:none;}
+  .issue-item .txt{flex:1; min-width:180px; font-size:14.5px;}
+  .issue-item .txt .where{color:var(--muted); font-size:13px;}
+  .issue-item img{width:52px; height:52px; object-fit:cover; border-radius:6px; border:1px solid var(--line);}
+  /* Checklist editor */
+  .ed-room{border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:12px;}
+  .ed-room-head{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .ed-room-head .nm{flex:1; font-weight:700; font-size:15.5px;}
+  .ed-task{display:flex; align-items:center; gap:8px; padding:4px 0; font-size:14.5px;}
+  .ed-task .tx{flex:1;}
+  .ed-add{display:flex; gap:8px; margin-top:8px;}
+  .ed-add input{flex:1; padding:8px 10px; font-size:14.5px; border:1px solid var(--line); border-radius:6px; min-width:0;}
+  .x-btn{background:none; border:none; color:var(--bad-ink); font-size:16px; cursor:pointer; padding:2px 6px; font-weight:700;}
+  @media (max-width:820px){ .grid{grid-template-columns:1fr;} .row2{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <div>
+      <div class="logo">Turnover<span>Ledger</span></div>
+      <div class="logo-tag">Professional Cleaning Inspection Reports</div>
+    </div>
+    <a href="index.html">← Back to home</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <h1>Turnover inspection</h1>
+  <p class="sub">Work the checklist room by room on your phone. The checklist and completion summary are free, and your first branded PDF report is free too — Pro adds photos, the damage log, unlimited reports, evidence packs, multiple properties, and history.</p>
+
+  <div class="grid">
+    <!-- LEFT column -->
+    <div class="stack">
+      <div class="card">
+        <h2>Your company</h2>
+        <div class="field">
+          <label for="companyName">Company name <span class="hint">— printed on the report</span></label>
+          <input type="text" id="companyName" placeholder="e.g. Bright Shine Vacation Cleaning LLC" autocomplete="off">
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="companyPhone">Phone <span class="hint">— optional</span></label>
+            <input type="tel" id="companyPhone" placeholder="e.g. (916) 555-0142" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="companyEmail">Email <span class="hint">— optional</span></label>
+            <input type="email" id="companyEmail" placeholder="e.g. reports@yourcompany.com" autocomplete="off">
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label for="logoInput">Company logo <span class="hint">— PNG or JPG, shown on the Pro PDF report</span></label>
+          <input type="file" id="logoInput" accept="image/png,image/jpeg">
+          <p class="fineprint" id="logoStatus">No logo uploaded.</p>
+          <button class="btn btn-ghost btn-small" id="removeLogoBtn" type="button" style="display:none;">Remove logo</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Property</h2>
+        <div class="field">
+          <label for="propertyName">Property name</label>
+          <input type="text" id="propertyName" placeholder="e.g. Maple Street Cottage" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="propertyAddress">Address <span class="hint">— optional, shown on the report</span></label>
+          <input type="text" id="propertyAddress" placeholder="e.g. 123 Maple St" autocomplete="off">
+        </div>
+        <div id="propTools" style="display:none;">
+          <div class="field">
+            <label for="propSelect">Saved properties <span class="hint">— Pro</span></label>
+            <select id="propSelect"></select>
+          </div>
+          <div class="data-row" style="margin-top:0;">
+            <button class="btn btn-ghost btn-small" id="savePropBtn" type="button">Save property &amp; checklist</button>
+            <button class="btn btn-ghost btn-small" id="newPropBtn" type="button">New property</button>
+            <button class="btn btn-ghost btn-small" id="deletePropBtn" type="button">Delete property</button>
+          </div>
+          <p class="fineprint">Saving a property saves its name, address, and the checklist below, so each property keeps its own custom checklist.</p>
+        </div>
+      </div>
+
+      <div class="card" id="editorCard" style="display:none;">
+        <h2>Checklist editor <span class="pro-tag">PRO</span></h2>
+        <p class="hint" style="color:var(--muted); font-size:13px; margin-bottom:12px;">Add or remove rooms and tasks. Changes apply to the checklist on the right and are saved with the property.</p>
+        <div id="editorBox"></div>
+        <div class="ed-add">
+          <input type="text" id="newRoomName" placeholder="New room name, e.g. Game room" autocomplete="off">
+          <button class="btn btn-ghost btn-small" id="addRoomBtn" type="button">Add room</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>This turnover</h2>
+        <div class="row2">
+          <div class="field">
+            <label for="cleanerName">Cleaner name</label>
+            <input type="text" id="cleanerName" placeholder="e.g. Maria S." autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="turnWhen">Date &amp; time</label>
+            <input type="datetime-local" id="turnWhen">
+          </div>
+        </div>
+        <button class="btn btn-ghost" id="newTurnBtn" type="button" style="width:100%;">Start a fresh turnover</button>
+        <p class="fineprint">Your in-progress turnover is kept in this browser as you work, so an interruption doesn't lose it.</p>
+      </div>
+    </div>
+
+    <!-- RIGHT column -->
+    <div class="stack">
+      <div class="card">
+        <h2>Completion summary</h2>
+        <div class="result-row big"><span class="lbl">Checklist complete</span><span class="val" id="sumPct">0%</span></div>
+        <div class="result-row"><span class="lbl">Tasks done</span><span class="val" id="sumTasks">0 of 0</span></div>
+        <div class="result-row"><span class="lbl">Rooms signed off (ready or N/A)</span><span class="val" id="sumRooms">0 of 0</span></div>
+        <div class="result-row"><span class="lbl">Photos attached</span><span class="val" id="sumPhotos">0</span></div>
+        <div class="result-row"><span class="lbl">Issues logged</span><span class="val" id="sumIssues">0</span></div>
+        <div class="result-row"><span class="lbl">Ready for guest</span><span class="verdict-big no" id="sumVerdict">NO</span></div>
+        <div class="warning" id="verdictWarn">
+          <strong>Not ready yet:</strong> the verdict is YES only when every room is marked Ready or N/A
+          <em>and</em> no unresolved High-severity issue remains. Rooms still open are listed in the
+          checklist — finish or mark tasks N/A, resolve High issues you have dealt with, then sign each room off.
+        </div>
+      </div>
+
+      <div>
+        <div id="roomsBox"></div>
+      </div>
+
+      <div class="card">
+        <h2>Damage &amp; issues <span class="pro-tag">PRO</span></h2>
+        <div class="field">
+          <label for="issItem">Item <span class="hint">— what is damaged or missing</span></label>
+          <input type="text" id="issItem" placeholder="e.g. Coffee mug — chipped" autocomplete="off">
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="issRoom">Room</label>
+            <select id="issRoom"></select>
+          </div>
+          <div class="field">
+            <label for="issSeverity">Severity</label>
+            <select id="issSeverity">
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="issDesc">Description <span class="hint">— what you found, what you did about it</span></label>
+          <textarea id="issDesc" rows="2" placeholder="e.g. Found chipped on arrival; replaced from spares cupboard and photographed."></textarea>
+        </div>
+        <div class="field">
+          <label for="issPhotoInput">Photo of the issue <span class="hint">— optional, strongly recommended</span></label>
+          <input type="file" id="issPhotoInput" accept="image/*">
+          <p class="fineprint" id="issPhotoStatus">No photo attached yet.</p>
+        </div>
+        <button class="btn btn-ghost" id="addIssueBtn" type="button" style="width:100%;">Add issue to the log</button>
+        <div class="saved-list" id="issuesList"></div>
+      </div>
+
+      <div class="card">
+        <h2>Finish this turnover</h2>
+        <button class="btn btn-primary" id="pdfBtn" type="button">Download PDF inspection report</button>
+        <p class="fineprint" id="pdfNote">Pro feature — the branded PDF carries your logo, checklist results, photos, and the issue log. It's the copy you send the host or owner.</p>
+        <div style="margin-top:14px;">
+          <button class="btn btn-ghost" id="saveTurnBtn" type="button" style="width:100%;">Save turnover to history</button>
+          <p class="fineprint">Pro feature — saved turnovers appear in your history dashboard below, per property, with verdicts and issue counts.</p>
+        </div>
+      </div>
+
+      <!-- PRO GATE (shown when Pro is locked) -->
+      <div class="card" id="proGate">
+        <h2>TurnoverLedger Pro <span class="pro-tag">PRO</span></h2>
+        <p style="font-size:15px; margin-bottom:6px;">Unlock photo documentation, the damage log, branded PDF reports, an evidence pack (report + original photos in one ZIP) for every saved turnover, multiple properties with custom checklists, and the history dashboard. Your first PDF report is free either way — no credit card required.</p>
+        <p style="font-size:15px; margin-bottom:16px;"><strong>$19/month founding-member pricing</strong> — locked in while your subscription stays active. Standard price $29.</p>
+        <a class="btn btn-primary" href="https://buy.stripe.com/bJe8wQ77R6uQ7iY09q0oM0o" style="margin-bottom:12px;">Subscribe — $19/month</a>
+        <button class="btn btn-ghost" id="unlockBtn" type="button" style="width:100%;">I already subscribed — unlock Pro</button>
+        <p class="fineprint">Launch note: during our opening validation, unlocking is on the honor system — please subscribe first; the button simply turns Pro on for this browser on this device.</p>
+      </div>
+
+      <!-- PRO AREA (shown when Pro is unlocked) -->
+      <div id="proArea" style="display:none;">
+        <div class="stack">
+          <div class="card">
+            <h2>Turnover history <span class="pro-tag">PRO</span></h2>
+            <div class="result-row"><span class="lbl">Turnovers this month</span><span class="val" id="totMonth">0</span></div>
+            <div class="result-row"><span class="lbl">Issues found this month</span><span class="val" id="totIssuesMonth">0</span></div>
+            <div class="result-row"><span class="lbl">Turnovers all time</span><span class="val" id="totAll">0</span></div>
+            <div class="saved-list" id="historyList"></div>
+          </div>
+
+          <div class="card">
+            <h2>Your data <span class="pro-tag">PRO</span></h2>
+            <div class="data-note"><strong>Your data is stored only in this browser on this device</strong> — checklists and history in browser storage, photos in this browser's local database (IndexedDB). Export a backup regularly. Clearing browser data erases saved turnovers and photos.</div>
+            <p class="fineprint" id="storageNote">Photo storage: checking…</p>
+            <div class="data-row">
+              <button class="btn btn-ghost btn-small" id="exportBackupBtn" type="button">Export backup (JSON)</button>
+              <label class="btn btn-ghost btn-small" for="importInput" style="cursor:pointer;">Import backup…</label>
+              <input type="file" id="importInput" accept="application/json,.json" style="display:none;">
+            </div>
+            <div class="data-row">
+              <button class="btn btn-ghost btn-small" id="lockBtn" type="button">Lock Pro on this device</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var PRO_KEY      = "turnoverledger.pro.v1";
+  var FREE_REPORT_KEY = "turnoverledger.freereport.v1";
+  var SETTINGS_KEY = "turnoverledger.settings.v1";
+  var PROPS_KEY    = "turnoverledger.properties.v1";
+  var TURNS_KEY    = "turnoverledger.turnovers.v1";
+  var DRAFT_KEY    = "turnoverledger.draft.v1";
+  var SEVERITIES   = ["Low","Medium","High"];
+
+  function $(id){ return document.getElementById(id); }
+
+  function uid(){
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+  }
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+  // ---- Default checklist (the free tier's one-property checklist) ----
+  function defaultChecklist(){
+    return [
+      { name:"Living room", tasks:[
+        "Surfaces wiped & dusted",
+        "Floors vacuumed & mopped",
+        "Furniture & cushions straightened",
+        "Trash emptied, new liner in",
+        "Lights, TV & remotes checked" ]},
+      { name:"Kitchen", tasks:[
+        "Counters & surfaces wiped down",
+        "Appliances checked & wiped (fridge, oven, microwave)",
+        "Dishes clean & put away",
+        "Sink scrubbed & faucet polished",
+        "Supplies restocked (soap, paper towels, coffee)",
+        "Trash out, new liner in" ]},
+      { name:"Bedroom 1", tasks:[
+        "Bed made with fresh linens",
+        "Surfaces wiped & dusted",
+        "Floors vacuumed",
+        "Trash emptied, new liner in",
+        "Closet & drawers checked & empty" ]},
+      { name:"Bedroom 2", tasks:[
+        "Bed made with fresh linens",
+        "Surfaces wiped & dusted",
+        "Floors vacuumed",
+        "Trash emptied, new liner in",
+        "Closet & drawers checked & empty" ]},
+      { name:"Bathroom", tasks:[
+        "Toilet, shower & tub scrubbed",
+        "Mirrors & fixtures polished",
+        "Towels replaced with fresh set",
+        "Supplies restocked (toilet paper, soap, shampoo)",
+        "Floors mopped",
+        "Trash emptied, new liner in" ]},
+      { name:"Entry", tasks:[
+        "Floors swept & mopped",
+        "Door, handle & lock checked",
+        "Keys / lockbox & welcome items in place",
+        "Surfaces wiped" ]},
+      { name:"Outdoor", tasks:[
+        "Patio or deck swept",
+        "Outdoor furniture wiped & arranged",
+        "Walkway & steps clear",
+        "Trash & recycling bins in place" ]}
+    ];
+  }
+
+  // ---- Pure turnover logic (also documented in README.md) ----
+  // A "state room" is { name, tasks:[{label, done, na}], note, status, ready, photoIds:[] }.
+  // status is "pending" | "ready" | "na"; `ready` is kept in sync (status === "ready")
+  // for older code and older saved data. A task marked N/A counts as handled.
+  function deriveRooms(template, prevRooms){
+    prevRooms = prevRooms || [];
+    return (template || []).map(function(tr){
+      var prev = null;
+      prevRooms.forEach(function(pr){ if(pr.name === tr.name && !prev){ prev = pr; } });
+      var tasks = (tr.tasks || []).map(function(label){
+        var done = false, na = false;
+        if(prev){
+          prev.tasks.forEach(function(pt){ if(pt.label === label){ done = !!pt.done; na = !!pt.na; } });
+        }
+        return { label: label, done: done, na: na };
+      });
+      var status = "pending";
+      if(prev){
+        if(prev.status === "ready" || prev.status === "na" || prev.status === "pending"){ status = prev.status; }
+        else if(prev.ready){ status = "ready"; }
+      }
+      return {
+        name: tr.name,
+        tasks: tasks,
+        note: prev ? (prev.note || "") : "",
+        status: status,
+        ready: status === "ready",
+        photoIds: prev ? (prev.photoIds || []).slice() : []
+      };
+    });
+  }
+
+  // Older records/drafts stored `ready` as a boolean only, tasks without
+  // `na`, and issues without `resolved` — normalise them to the current shape.
+  function normalizeRooms(rooms){
+    (rooms || []).forEach(function(r){
+      if(r.status !== "ready" && r.status !== "na" && r.status !== "pending"){
+        r.status = r.ready ? "ready" : "pending";
+      }
+      r.ready = r.status === "ready";
+      (r.tasks || []).forEach(function(t){ if(typeof t.na === "undefined"){ t.na = false; } });
+    });
+    return rooms;
+  }
+  function normalizeIssues(issues){
+    (issues || []).forEach(function(it){ it.resolved = !!it.resolved; });
+    return issues;
+  }
+  function roomStatus(room){
+    return room.status || (room.ready ? "ready" : "pending");
+  }
+
+  function roomStats(room){
+    var total = room.tasks.length, done = 0;
+    room.tasks.forEach(function(t){ if(t.done || t.na){ done++; } });
+    return { done: done, total: total, pct: total ? Math.round(done / total * 100) : 100 };
+  }
+
+  function completion(rooms){
+    var done = 0, total = 0;
+    (rooms || []).forEach(function(r){
+      var s = roomStats(r); done += s.done; total += s.total;
+    });
+    return { done: done, total: total, pct: total ? Math.round(done / total * 100) : 0 };
+  }
+
+  function roomsReady(rooms){
+    var n = 0;
+    (rooms || []).forEach(function(r){ if(roomStatus(r) === "ready"){ n++; } });
+    return n;
+  }
+
+  function roomsSignedOff(rooms){
+    var n = 0;
+    (rooms || []).forEach(function(r){
+      var st = roomStatus(r);
+      if(st === "ready" || st === "na"){ n++; }
+    });
+    return n;
+  }
+
+  // Verdict: YES only when there is at least one room, EVERY room is signed
+  // off as Ready or N/A by the cleaner, and no unresolved High-severity
+  // issue exists. Task completion is shown separately — the cleaner's
+  // per-room sign-off plus a clean High-issue slate is what decides it.
+  function computeVerdict(rooms, issues){
+    if(!rooms || !rooms.length){ return false; }
+    for(var i = 0; i < rooms.length; i++){
+      var st = roomStatus(rooms[i]);
+      if(st !== "ready" && st !== "na"){ return false; }
+    }
+    var iss = issues || [];
+    for(var j = 0; j < iss.length; j++){
+      if(iss[j].severity === "High" && !iss[j].resolved){ return false; }
+    }
+    return true;
+  }
+
+  function countPhotos(state){
+    var n = 0;
+    (state.rooms || []).forEach(function(r){ n += (r.photoIds || []).length; });
+    (state.issues || []).forEach(function(it){ if(it.photoId){ n++; } });
+    return n;
+  }
+
+  function historyTotals(turnovers, now){
+    now = now || new Date();
+    var m = now.getMonth(), y = now.getFullYear();
+    var month = 0, issuesMonth = 0, issuesAll = 0;
+    (turnovers || []).forEach(function(t){
+      var ic = (t.issues && t.issues.length) || t.issueCount || 0;
+      issuesAll += ic;
+      var d = new Date(t.when);
+      if(!isNaN(d.getTime()) && d.getMonth() === m && d.getFullYear() === y){
+        month++; issuesMonth += ic;
+      }
+    });
+    return { total: (turnovers || []).length, thisMonth: month,
+             issuesThisMonth: issuesMonth, issuesAllTime: issuesAll };
+  }
+
+  function makeRecord(state, propName, propAddress){
+    return {
+      id: uid(),
+      propertyId: state.propertyId || "",
+      propertyName: propName || "Unnamed property",
+      address: propAddress || "",
+      cleaner: state.cleaner || "",
+      when: state.when || new Date().toISOString(),
+      verdict: computeVerdict(state.rooms, state.issues),
+      issueCount: (state.issues || []).length,
+      rooms: normalizeRooms(clone(state.rooms || [])),
+      issues: normalizeIssues(clone(state.issues || [])),
+      evidenceExported: false
+    };
+  }
+
+  // ---- PhotoStore: IndexedDB wrapper (photos are too big for localStorage).
+  // Falls back to an in-memory store only when IndexedDB is unavailable, so
+  // the app never hard-crashes; the UI storage note says which is in use.
+  var PhotoStore = (function(){
+    var mem = {};
+    var useMem = (typeof indexedDB === "undefined");
+    var dbPromise = null;
+    function open(){
+      if(useMem){ return Promise.resolve(null); }
+      if(!dbPromise){
+        dbPromise = new Promise(function(resolve, reject){
+          var req;
+          try { req = indexedDB.open("turnoverledger", 1); }
+          catch(e){ useMem = true; resolve(null); return; }
+          req.onupgradeneeded = function(ev){
+            var db = ev.target.result;
+            if(!db.objectStoreNames.contains("photos")){ db.createObjectStore("photos"); }
+          };
+          req.onsuccess = function(ev){ resolve(ev.target.result); };
+          req.onerror = function(){ useMem = true; resolve(null); };
+        });
+      }
+      return dbPromise;
+    }
+    function run(makeReq){
+      return open().then(function(db){
+        if(!db || useMem){ return null; }
+        return new Promise(function(resolve, reject){
+          var rq = makeReq(db);
+          rq.onsuccess = function(){ resolve(rq.result); };
+          rq.onerror = function(){ reject(rq.error); };
+        });
+      });
+    }
+    return {
+      isMemoryFallback: function(){ return useMem; },
+      put: function(id, dataUrl){
+        if(useMem){ mem[id] = dataUrl; return Promise.resolve(); }
+        return run(function(db){
+          return db.transaction("photos", "readwrite").objectStore("photos").put(dataUrl, id);
+        }).then(function(){ return undefined; })
+          .catch(function(){ mem[id] = dataUrl; });
+      },
+      get: function(id){
+        if(useMem){ return Promise.resolve(mem[id] || null); }
+        return run(function(db){
+          return db.transaction("photos", "readonly").objectStore("photos").get(id);
+        }).then(function(v){ return (v === undefined || v === null) ? (mem[id] || null) : v; })
+          .catch(function(){ return mem[id] || null; });
+      },
+      del: function(id){
+        delete mem[id];
+        if(useMem){ return Promise.resolve(); }
+        return run(function(db){
+          return db.transaction("photos", "readwrite").objectStore("photos").delete(id);
+        }).then(function(){ return undefined; }).catch(function(){ return undefined; });
+      },
+      keys: function(){
+        if(useMem){ return Promise.resolve(Object.keys(mem)); }
+        return run(function(db){
+          return db.transaction("photos", "readonly").objectStore("photos").getAllKeys();
+        }).then(function(k){ return k || []; }).catch(function(){ return Object.keys(mem); });
+      }
+    };
+  })();
+
+  // Downscale a photo data URL to max 1280px JPEG where canvas is available;
+  // any failure returns the original data URL untouched.
+  function downscalePhoto(dataUrl){
+    return new Promise(function(resolve){
+      if(typeof Image === "undefined"){ resolve(dataUrl); return; }
+      var img = new Image();
+      img.onload = function(){
+        try {
+          var maxDim = 1280;
+          var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+          if(!w || !h || (w <= maxDim && h <= maxDim)){ resolve(dataUrl); return; }
+          var scale = Math.min(maxDim / w, maxDim / h);
+          var canvas = document.createElement("canvas");
+          canvas.width = Math.round(w * scale);
+          canvas.height = Math.round(h * scale);
+          var ctx = canvas.getContext && canvas.getContext("2d");
+          if(!ctx || !canvas.toDataURL){ resolve(dataUrl); return; }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.82));
+        } catch(e){ resolve(dataUrl); }
+      };
+      img.onerror = function(){ resolve(dataUrl); };
+      img.src = dataUrl;
+    });
+  }
+
+  function readFileAsDataUrl(file){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onload = function(){ resolve(String(reader.result || "")); };
+      reader.onerror = function(){ reject(new Error("read failed")); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ---- localStorage helpers ----
+  function lsGet(key, fallback){
+    try {
+      var raw = localStorage.getItem(key);
+      if(raw === null || raw === undefined){ return fallback; }
+      var v = JSON.parse(raw);
+      return (v === null || v === undefined) ? fallback : v;
+    } catch(e){ return fallback; }
+  }
+  function lsSet(key, value){
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+    catch(e){ return false; }
+  }
+
+  function loadSettings(){ var s = lsGet(SETTINGS_KEY, {}); return (s && typeof s === "object") ? s : {}; }
+  function loadProperties(){ var a = lsGet(PROPS_KEY, []); return Array.isArray(a) ? a : []; }
+  function storeProperties(a){ lsSet(PROPS_KEY, a); }
+  function loadTurnovers(){ var a = lsGet(TURNS_KEY, []); return Array.isArray(a) ? a : []; }
+  function storeTurnovers(a){
+    if(!lsSet(TURNS_KEY, a)){ alert("Could not save — this browser's storage is unavailable or full."); }
+  }
+
+  // ---- Settings: company fields + logo (persisted) ----
+  var logoDataUrl = "";
+  var logoImg = (typeof Image !== "undefined") ? new Image() : null;
+
+  function saveSettings(){
+    var s = loadSettings();
+    s.companyName  = $("companyName").value;
+    s.companyPhone = $("companyPhone").value;
+    s.companyEmail = $("companyEmail").value;
+    s.logo = logoDataUrl || "";
+    lsSet(SETTINGS_KEY, s);
+  }
+  function setLogo(dataUrl, silent){
+    logoDataUrl = dataUrl || "";
+    if(logoImg && logoDataUrl){ logoImg.src = logoDataUrl; }
+    $("logoStatus").textContent = logoDataUrl ? "Logo uploaded — it will appear on your PDF reports." : "No logo uploaded.";
+    $("removeLogoBtn").style.display = logoDataUrl ? "inline-block" : "none";
+    if(!silent){ saveSettings(); }
+  }
+  function applySettings(){
+    var s = loadSettings();
+    if(s.companyName){ $("companyName").value = s.companyName; }
+    if(s.companyPhone){ $("companyPhone").value = s.companyPhone; }
+    if(s.companyEmail){ $("companyEmail").value = s.companyEmail; }
+    if(s.logo){ setLogo(s.logo, true); }
+  }
+  $("logoInput").addEventListener("change", function(){
+    var f = $("logoInput").files && $("logoInput").files[0];
+    if(!f){ return; }
+    readFileAsDataUrl(f).then(function(url){ setLogo(url); })
+      .catch(function(){ alert("That logo file couldn't be read. Try a PNG or JPG."); });
+  });
+  $("removeLogoBtn").addEventListener("click", function(){
+    $("logoInput").value = "";
+    setLogo("");
+  });
+  ["companyName","companyPhone","companyEmail"].forEach(function(id){
+    $(id).addEventListener("input", saveSettings);
+  });
+
+  // ---- Pro state ----
+  function isPro(){
+    try { return localStorage.getItem(PRO_KEY) === "1"; } catch(e){ return false; }
+  }
+  function proAlert(what){
+    alert(what + " is a Pro feature. Subscribe ($19/month founding price) or tap \u201CI already subscribed \u2014 unlock Pro\u201D below.");
+  }
+
+  // ---- First report free: one complete branded PDF for free-tier users,
+  // tracked by a localStorage counter. Best-effort only (clearing browser
+  // data resets it) — there is no registration or server check at MVP.
+  function freeReportsUsed(){
+    try { return parseInt(localStorage.getItem(FREE_REPORT_KEY) || "0", 10) || 0; }
+    catch(e){ return 0; }
+  }
+  function freeReportAvailable(){ return freeReportsUsed() < 1; }
+  function consumeFreeReport(){
+    try { localStorage.setItem(FREE_REPORT_KEY, String(freeReportsUsed() + 1)); } catch(e){ /* ignore */ }
+  }
+
+  // ---- Working state ----
+  function localNowValue(){
+    var d = new Date();
+    function p(n){ return (n < 10 ? "0" : "") + n; }
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
+           "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
+  var template = defaultChecklist(); // checklist template for the current property
+  var state = null;                  // the in-progress turnover
+
+  function freshState(propertyId){
+    return {
+      propertyId: propertyId || "",
+      cleaner: "",
+      when: new Date().toISOString(),
+      rooms: deriveRooms(template, null),
+      issues: []
+    };
+  }
+
+  function saveDraft(){
+    if(!state){ return; }
+    state.cleaner = $("cleanerName").value.trim();
+    var wv = $("turnWhen").value;
+    if(wv){ var d = new Date(wv); if(!isNaN(d.getTime())){ state.when = d.toISOString(); } }
+    lsSet(DRAFT_KEY, {
+      state: state,
+      template: template,
+      propertyName: $("propertyName").value,
+      propertyAddress: $("propertyAddress").value
+    });
+  }
+
+  function loadDraft(){
+    var d = lsGet(DRAFT_KEY, null);
+    if(d && d.state && Array.isArray(d.state.rooms)){
+      state = d.state;
+      normalizeRooms(state.rooms);
+      normalizeIssues(state.issues);
+      if(Array.isArray(d.template) && d.template.length){ template = d.template; }
+      $("propertyName").value = d.propertyName || "";
+      $("propertyAddress").value = d.propertyAddress || "";
+      return true;
+    }
+    return false;
+  }
+
+  function syncHeaderFields(){
+    $("cleanerName").value = state.cleaner || "";
+    var d = new Date(state.when);
+    if(!isNaN(d.getTime())){
+      function p(n){ return (n < 10 ? "0" : "") + n; }
+      $("turnWhen").value = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
+                            "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+    }
+  }
+
+  // ---- Properties (Pro) ----
+  function currentProperty(){
+    if(!state || !state.propertyId){ return null; }
+    var found = null;
+    loadProperties().forEach(function(p){ if(p.id === state.propertyId){ found = p; } });
+    return found;
+  }
+
+  function renderPropSelect(){
+    var sel = $("propSelect");
+    sel.innerHTML = "";
+    var props = loadProperties();
+    var none = document.createElement("option");
+    none.value = ""; none.textContent = "— Not saved (one-off property) —";
+    sel.appendChild(none);
+    props.forEach(function(p){
+      var o = document.createElement("option");
+      o.value = p.id; o.textContent = p.name || "Unnamed property";
+      sel.appendChild(o);
+    });
+    sel.value = state ? (state.propertyId || "") : "";
+  }
+
+  function selectProperty(id){
+    var props = loadProperties();
+    var prop = null;
+    props.forEach(function(p){ if(p.id === id){ prop = p; } });
+    if(prop){
+      template = clone(prop.rooms || defaultChecklist());
+      state = freshState(prop.id);
+      state.rooms = deriveRooms(template, null);
+      $("propertyName").value = prop.name || "";
+      $("propertyAddress").value = prop.address || "";
+    } else {
+      template = defaultChecklist();
+      state = freshState("");
+      $("propertyName").value = "";
+      $("propertyAddress").value = "";
+    }
+    pendingIssuePhoto = null;
+    $("issPhotoInput").value = "";
+    $("issPhotoStatus").textContent = "No photo attached yet.";
+    syncHeaderFields();
+    renderPropSelect();
+    renderEditor();
+    renderAll();
+    saveDraft();
+  }
+
+  $("propSelect").addEventListener("change", function(){ selectProperty($("propSelect").value); });
+
+  $("savePropBtn").addEventListener("click", function(){
+    if(!isPro()){ proAlert("Saving properties"); return; }
+    var name = $("propertyName").value.trim();
+    if(!name){ alert("Give the property a name first, then save it."); return; }
+    var props = loadProperties();
+    var existing = currentProperty();
+    if(existing){
+      existing.name = name;
+      existing.address = $("propertyAddress").value.trim();
+      existing.rooms = clone(template);
+    } else {
+      var prop = { id: uid(), name: name, address: $("propertyAddress").value.trim(), rooms: clone(template) };
+      props.push(prop);
+      state.propertyId = prop.id;
+    }
+    storeProperties(props);
+    renderPropSelect();
+    saveDraft();
+    alert("Property saved with its checklist: " + name);
+  });
+
+  $("newPropBtn").addEventListener("click", function(){
+    if(!isPro()){ proAlert("Multiple properties"); return; }
+    selectProperty("");
+  });
+
+  $("deletePropBtn").addEventListener("click", function(){
+    if(!isPro()){ proAlert("Deleting properties"); return; }
+    var prop = currentProperty();
+    if(!prop){ alert("This property isn't saved yet — there's nothing to delete."); return; }
+    storeProperties(loadProperties().filter(function(p){ return p.id !== prop.id; }));
+    selectProperty("");
+    alert("Property deleted: " + (prop.name || "Unnamed property") + ". Saved turnover history was kept.");
+  });
+
+  // ---- Checklist editor (Pro) ----
+  function applyTemplateChange(){
+    state.rooms = deriveRooms(template, state.rooms);
+    var prop = currentProperty();
+    if(prop){
+      prop.rooms = clone(template);
+      var props = loadProperties().map(function(p){ return p.id === prop.id ? prop : p; });
+      storeProperties(props);
+    }
+    renderEditor();
+    renderAll();
+    saveDraft();
+  }
+
+  function renderEditor(){
+    var box = $("editorBox");
+    box.innerHTML = "";
+    template.forEach(function(room, ri){
+      var wrap = document.createElement("div");
+      wrap.className = "ed-room";
+
+      var head = document.createElement("div");
+      head.className = "ed-room-head";
+      var nm = document.createElement("span");
+      nm.className = "nm"; nm.textContent = room.name;
+      head.appendChild(nm);
+      var delRoom = document.createElement("button");
+      delRoom.type = "button"; delRoom.className = "x-btn room-del";
+      delRoom.setAttribute("data-room", ri); delRoom.textContent = "✕";
+      delRoom.title = "Remove room";
+      head.appendChild(delRoom);
+      wrap.appendChild(head);
+
+      room.tasks.forEach(function(label, ti){
+        var row = document.createElement("div");
+        row.className = "ed-task";
+        var tx = document.createElement("span");
+        tx.className = "tx"; tx.textContent = label;
+        row.appendChild(tx);
+        var x = document.createElement("button");
+        x.type = "button"; x.className = "x-btn task-del";
+        x.setAttribute("data-room", ri); x.setAttribute("data-task", ti);
+        x.textContent = "✕"; x.title = "Remove task";
+        row.appendChild(x);
+        wrap.appendChild(row);
+      });
+
+      var add = document.createElement("div");
+      add.className = "ed-add";
+      var inp = document.createElement("input");
+      inp.type = "text"; inp.className = "task-add-input";
+      inp.setAttribute("data-room", ri);
+      inp.placeholder = "Add a task to " + room.name + "…";
+      add.appendChild(inp);
+      var btn = document.createElement("button");
+      btn.type = "button"; btn.className = "btn btn-ghost btn-small task-add-btn";
+      btn.setAttribute("data-room", ri); btn.textContent = "Add task";
+      add.appendChild(btn);
+      wrap.appendChild(add);
+
+      box.appendChild(wrap);
+    });
+  }
+
+  $("editorBox").addEventListener("click", function(ev){
+    var t = ev.target;
+    if(!t || !t.className){ return; }
+    var ri = parseInt(t.getAttribute && t.getAttribute("data-room"), 10);
+    if(t.className.indexOf("task-del") >= 0){
+      var ti = parseInt(t.getAttribute("data-task"), 10);
+      template[ri].tasks.splice(ti, 1);
+      applyTemplateChange();
+    } else if(t.className.indexOf("room-del") >= 0){
+      template.splice(ri, 1);
+      applyTemplateChange();
+    } else if(t.className.indexOf("task-add-btn") >= 0){
+      var inputs = $("editorBox").querySelectorAll(".task-add-input");
+      var inp = null;
+      for(var i = 0; i < inputs.length; i++){
+        if(inputs[i].getAttribute("data-room") === String(ri)){ inp = inputs[i]; }
+      }
+      var label = inp ? inp.value.trim() : "";
+      if(!label){ alert("Type the new task first."); return; }
+      template[ri].tasks.push(label);
+      applyTemplateChange();
+    }
+  });
+
+  $("addRoomBtn").addEventListener("click", function(){
+    var name = $("newRoomName").value.trim();
+    if(!name){ alert("Type a room name first."); return; }
+    template.push({ name: name, tasks: [] });
+    $("newRoomName").value = "";
+    applyTemplateChange();
+  });
+
+  // ---- Room rendering ----
+  function renderRooms(){
+    var box = $("roomsBox");
+    box.innerHTML = "";
+    state.rooms.forEach(function(room, ri){
+      var card = document.createElement("div");
+      card.className = "room";
+
+      var head = document.createElement("div");
+      head.className = "room-head";
+      var h3 = document.createElement("h3");
+      h3.textContent = room.name;
+      head.appendChild(h3);
+      var pct = document.createElement("span");
+      pct.className = "room-pct"; pct.id = "roomPct-" + ri;
+      head.appendChild(pct);
+      card.appendChild(head);
+
+      room.tasks.forEach(function(task, ti){
+        var row = document.createElement("div");
+        row.className = "check-row";
+        var lab = document.createElement("label");
+        lab.className = "check" + (task.done ? " done" : "") + (task.na ? " na" : "");
+        var cb = document.createElement("input");
+        cb.type = "checkbox"; cb.className = "task-check";
+        cb.setAttribute("data-room", ri); cb.setAttribute("data-task", ti);
+        cb.checked = !!task.done;
+        if(task.na){ cb.disabled = true; }
+        lab.appendChild(cb);
+        var sp = document.createElement("span");
+        sp.textContent = task.na ? task.label + " (N/A)" : task.label;
+        lab.appendChild(sp);
+        row.appendChild(lab);
+        var naBtn = document.createElement("button");
+        naBtn.type = "button";
+        naBtn.className = "na-btn" + (task.na ? " on" : "");
+        naBtn.setAttribute("data-room", ri); naBtn.setAttribute("data-task", ti);
+        naBtn.textContent = "N/A";
+        naBtn.title = task.na ? "Marked not applicable — tap to undo" : "Mark this task not applicable for this turnover";
+        row.appendChild(naBtn);
+        card.appendChild(row);
+      });
+      if(!room.tasks.length){
+        var none = document.createElement("p");
+        none.className = "empty-note";
+        none.textContent = "No tasks in this room yet — add some in the checklist editor.";
+        card.appendChild(none);
+      }
+
+      var note = document.createElement("input");
+      note.type = "text"; note.className = "note room-note";
+      note.setAttribute("data-room", ri);
+      note.placeholder = "Condition note for " + room.name + " (optional)";
+      note.value = room.note || "";
+      card.appendChild(note);
+
+      var photos = document.createElement("div");
+      photos.className = "photos"; photos.id = "photos-" + ri;
+      card.appendChild(photos);
+
+      var addLab = document.createElement("label");
+      addLab.className = "photo-add";
+      addLab.textContent = "+ Add photo";
+      var file = document.createElement("input");
+      file.type = "file"; file.className = "room-photo-input";
+      file.setAttribute("data-room", ri);
+      file.setAttribute("accept", "image/*");
+      file.style.display = "none";
+      addLab.appendChild(file);
+      card.appendChild(addLab);
+
+      var rc = document.createElement("div");
+      rc.className = "ready-control";
+      rc.id = "readyCtl-" + ri;
+      [["ready","Ready"],["pending","Not ready"],["na","N/A"]].forEach(function(pair){
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "rb ready-btn" + (roomStatus(room) === pair[0]
+          ? " on-" + (pair[0] === "pending" ? "notready" : pair[0]) : "");
+        b.setAttribute("data-room", ri);
+        b.setAttribute("data-status", pair[0]);
+        b.textContent = pair[1];
+        rc.appendChild(b);
+      });
+      card.appendChild(rc);
+
+      box.appendChild(card);
+    });
+    // Thumbs are filled only after every card is attached to the document,
+    // because fillThumbs looks the holder up by id.
+    state.rooms.forEach(function(room, ri){ fillThumbs(ri); });
+  }
+
+  function fillThumbs(ri){
+    var holder = $("photos-" + ri);
+    if(!holder){ return; }
+    holder.innerHTML = "";
+    (state.rooms[ri].photoIds || []).forEach(function(pid){
+      var th = document.createElement("div");
+      th.className = "thumb";
+      var img = document.createElement("img");
+      img.alt = "Room photo";
+      th.appendChild(img);
+      var del = document.createElement("button");
+      del.type = "button"; del.className = "thumb-del";
+      del.setAttribute("data-room", ri); del.setAttribute("data-photo", pid);
+      del.textContent = "✕"; del.title = "Remove photo";
+      th.appendChild(del);
+      holder.appendChild(th);
+      PhotoStore.get(pid).then(function(url){ if(url){ img.src = url; } });
+    });
+  }
+
+  // Delegated room events (one listener set for the whole rooms box)
+  $("roomsBox").addEventListener("change", function(ev){
+    var t = ev.target;
+    if(!t || !t.getAttribute){ return; }
+    var ri = parseInt(t.getAttribute("data-room"), 10);
+    if(t.className === "task-check"){
+      var ti = parseInt(t.getAttribute("data-task"), 10);
+      state.rooms[ri].tasks[ti].done = !!t.checked;
+      if(t.checked){ state.rooms[ri].tasks[ti].na = false; }
+      updateSummary();
+      saveDraft();
+    } else if(t.className === "room-photo-input"){
+      var f = t.files && t.files[0];
+      t.value = "";
+      if(!f){ return; }
+      if(!isPro()){ proAlert("Photo documentation"); return; }
+      readFileAsDataUrl(f)
+        .then(function(url){ return downscalePhoto(url); })
+        .then(function(url){
+          var pid = uid();
+          return PhotoStore.put(pid, url).then(function(){
+            state.rooms[ri].photoIds.push(pid);
+            fillThumbs(ri);
+            updateSummary();
+            updateStorageNote();
+            saveDraft();
+          });
+        })
+        .catch(function(){ alert("That photo couldn't be read. Try another one."); });
+    }
+  });
+  $("roomsBox").addEventListener("input", function(ev){
+    var t = ev.target;
+    if(!t || !t.getAttribute || t.className !== "note room-note"){ return; }
+    var ri = parseInt(t.getAttribute("data-room"), 10);
+    state.rooms[ri].note = t.value;
+    saveDraft();
+  });
+  $("roomsBox").addEventListener("click", function(ev){
+    var t = ev.target;
+    if(!t || !t.getAttribute || !t.className){ return; }
+    if(t.className.indexOf("ready-btn") >= 0){
+      var rbi = parseInt(t.getAttribute("data-room"), 10);
+      var st = t.getAttribute("data-status");
+      if(st !== "ready" && st !== "na" && st !== "pending"){ return; }
+      state.rooms[rbi].status = st;
+      state.rooms[rbi].ready = st === "ready";
+      renderRooms();
+      updateSummary();
+      saveDraft();
+      return;
+    }
+    if(t.className.indexOf("na-btn") >= 0){
+      var nri = parseInt(t.getAttribute("data-room"), 10);
+      var nti = parseInt(t.getAttribute("data-task"), 10);
+      var task = state.rooms[nri].tasks[nti];
+      task.na = !task.na;
+      if(task.na){ task.done = false; }
+      renderRooms();
+      updateSummary();
+      saveDraft();
+      return;
+    }
+    if(t.className !== "thumb-del"){ return; }
+    var ri = parseInt(t.getAttribute("data-room"), 10);
+    var pid = t.getAttribute("data-photo");
+    state.rooms[ri].photoIds = state.rooms[ri].photoIds.filter(function(x){ return x !== pid; });
+    PhotoStore.del(pid);
+    fillThumbs(ri);
+    updateSummary();
+    updateStorageNote();
+    saveDraft();
+  });
+
+  // ---- Summary ----
+  function updateSummary(){
+    var c = completion(state.rooms);
+    $("sumPct").textContent = c.pct + "%";
+    $("sumTasks").textContent = c.done + " of " + c.total;
+    $("sumRooms").textContent = roomsSignedOff(state.rooms) + " of " + state.rooms.length;
+    $("sumPhotos").textContent = countPhotos(state);
+    $("sumIssues").textContent = (state.issues || []).length;
+    var v = computeVerdict(state.rooms, state.issues);
+    var el = $("sumVerdict");
+    el.textContent = v ? "YES" : "NO";
+    el.className = "verdict-big " + (v ? "yes" : "no");
+    $("verdictWarn").style.display = v ? "none" : "block";
+    state.rooms.forEach(function(room, ri){
+      var p = $("roomPct-" + ri);
+      if(p){
+        var s = roomStats(room);
+        p.textContent = s.done + "/" + s.total + " done";
+        p.className = "room-pct" + (s.total && s.done === s.total ? " full" : "");
+      }
+    });
+  }
+
+  // ---- Issues ----
+  var pendingIssuePhoto = null; // photoId staged for the next issue added
+
+  function renderIssueRoomOptions(){
+    var sel = $("issRoom");
+    var prev = sel.value;
+    sel.innerHTML = "";
+    state.rooms.forEach(function(room){
+      var o = document.createElement("option");
+      o.value = room.name; o.textContent = room.name;
+      sel.appendChild(o);
+    });
+    if(prev){ sel.value = prev; }
+  }
+
+  $("issPhotoInput").addEventListener("change", function(){
+    var f = $("issPhotoInput").files && $("issPhotoInput").files[0];
+    if(!f){ return; }
+    if(!isPro()){ proAlert("Issue photos"); $("issPhotoInput").value = ""; return; }
+    readFileAsDataUrl(f)
+      .then(function(url){ return downscalePhoto(url); })
+      .then(function(url){
+        var pid = uid();
+        return PhotoStore.put(pid, url).then(function(){
+          if(pendingIssuePhoto){ PhotoStore.del(pendingIssuePhoto); }
+          pendingIssuePhoto = pid;
+          $("issPhotoStatus").textContent = "Photo attached — it will be saved with the issue when you add it.";
+          updateStorageNote();
+        });
+      })
+      .catch(function(){ alert("That photo couldn't be read. Try another one."); });
+  });
+
+  function renderIssues(){
+    var box = $("issuesList");
+    box.innerHTML = "";
+    if(!state.issues.length){
+      var p = document.createElement("p");
+      p.className = "empty-note";
+      p.textContent = "No issues logged for this turnover.";
+      box.appendChild(p);
+      return;
+    }
+    state.issues.forEach(function(it){
+      var row = document.createElement("div");
+      row.className = "issue-item" + (it.resolved ? " resolved" : "");
+      var chip = document.createElement("span");
+      chip.className = "chip chip-sev-" + (it.severity || "Low");
+      chip.textContent = it.severity || "Low";
+      row.appendChild(chip);
+      var txt = document.createElement("div");
+      txt.className = "txt";
+      var main = document.createElement("div");
+      main.textContent = (it.item || "Issue") + (it.resolved ? " — resolved" : "");
+      txt.appendChild(main);
+      var where = document.createElement("div");
+      where.className = "where";
+      where.textContent = (it.room || "") + (it.description ? " — " + it.description : "");
+      txt.appendChild(where);
+      row.appendChild(txt);
+      if(it.photoId){
+        var img = document.createElement("img");
+        img.alt = "Issue photo";
+        row.appendChild(img);
+        PhotoStore.get(it.photoId).then(function(url){ if(url){ img.src = url; } });
+      }
+      var res = document.createElement("button");
+      res.type = "button"; res.className = "btn btn-ghost btn-small issue-resolve";
+      res.setAttribute("data-issue", it.id);
+      res.textContent = it.resolved ? "Resolved ✓ — reopen" : "Mark resolved";
+      row.appendChild(res);
+      var del = document.createElement("button");
+      del.type = "button"; del.className = "btn btn-ghost btn-small issue-del";
+      del.setAttribute("data-issue", it.id);
+      del.textContent = "Delete";
+      row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
+
+  $("issuesList").addEventListener("click", function(ev){
+    var t = ev.target;
+    if(!t || !t.getAttribute){ return; }
+    if(t.className.indexOf("issue-resolve") >= 0){
+      var rid = t.getAttribute("data-issue");
+      state.issues.forEach(function(it){ if(it.id === rid){ it.resolved = !it.resolved; } });
+      renderIssues();
+      updateSummary();
+      saveDraft();
+      return;
+    }
+    if(t.className.indexOf("issue-del") < 0){ return; }
+    var id = t.getAttribute("data-issue");
+    state.issues.forEach(function(it){ if(it.id === id && it.photoId){ PhotoStore.del(it.photoId); } });
+    state.issues = state.issues.filter(function(it){ return it.id !== id; });
+    renderIssues();
+    updateSummary();
+    updateStorageNote();
+    saveDraft();
+  });
+
+  $("addIssueBtn").addEventListener("click", function(){
+    if(!isPro()){ proAlert("The damage & issue log"); return; }
+    var item = $("issItem").value.trim();
+    if(!item){ alert("Name the item first — e.g. \u201CCoffee mug — chipped\u201D."); return; }
+    state.issues.push({
+      id: uid(),
+      item: item,
+      room: $("issRoom").value || "",
+      severity: SEVERITIES.indexOf($("issSeverity").value) >= 0 ? $("issSeverity").value : "Low",
+      description: $("issDesc").value.trim(),
+      photoId: pendingIssuePhoto || null,
+      resolved: false
+    });
+    pendingIssuePhoto = null;
+    $("issItem").value = "";
+    $("issDesc").value = "";
+    $("issPhotoInput").value = "";
+    $("issPhotoStatus").textContent = "No photo attached yet.";
+    renderIssues();
+    updateSummary();
+    saveDraft();
+  });
+
+  // ---- Header fields / new turnover ----
+  ["cleanerName","turnWhen","propertyName","propertyAddress"].forEach(function(id){
+    $(id).addEventListener("input", saveDraft);
+    $(id).addEventListener("change", saveDraft);
+  });
+
+  $("newTurnBtn").addEventListener("click", function(){
+    var cleaner = state.cleaner || $("cleanerName").value.trim();
+    if(pendingIssuePhoto){ PhotoStore.del(pendingIssuePhoto); pendingIssuePhoto = null; }
+    $("issPhotoInput").value = "";
+    $("issPhotoStatus").textContent = "No photo attached yet.";
+    state = freshState(state.propertyId);
+    state.cleaner = cleaner;
+    syncHeaderFields();
+    renderAll();
+    saveDraft();
+  });
+
+  function renderAll(){
+    renderRooms();
+    renderIssueRoomOptions();
+    renderIssues();
+    updateSummary();
+  }
+
+  // ---- History (Pro) ----
+  function fmtWhen(iso){
+    var d = new Date(iso);
+    if(isNaN(d.getTime())){ return ""; }
+    return d.toLocaleDateString("en-US",{month:"short", day:"numeric", year:"numeric"}) + ", " +
+           d.toLocaleTimeString("en-US",{hour:"numeric", minute:"2-digit"});
+  }
+
+  function renderHistory(){
+    var turns = loadTurnovers();
+    var tot = historyTotals(turns, new Date());
+    $("totMonth").textContent = tot.thisMonth;
+    $("totIssuesMonth").textContent = tot.issuesThisMonth;
+    $("totAll").textContent = tot.total;
+
+    var box = $("historyList");
+    box.innerHTML = "";
+    if(!turns.length){
+      var p = document.createElement("p");
+      p.className = "empty-note";
+      p.textContent = "No saved turnovers yet. Finish a turnover above and save it here.";
+      box.appendChild(p);
+      return;
+    }
+    turns.forEach(function(t){
+      var row = document.createElement("div");
+      row.className = "saved-item";
+      var chip = document.createElement("span");
+      chip.className = "chip " + (t.verdict ? "chip-ready" : "chip-notready");
+      chip.textContent = t.verdict ? "READY" : "NOT READY";
+      row.appendChild(chip);
+      var name = document.createElement("span");
+      name.className = "name";
+      name.textContent = t.propertyName || "Unnamed property";
+      row.appendChild(name);
+      var meta = document.createElement("span");
+      meta.className = "meta";
+      var ic = (t.issues && t.issues.length) || t.issueCount || 0;
+      meta.textContent = fmtWhen(t.when) + " · " + ic + (ic === 1 ? " issue" : " issues");
+      row.appendChild(meta);
+      if(t.evidenceExported){
+        var pk = document.createElement("span");
+        pk.className = "meta pack-note";
+        pk.textContent = "Evidence pack exported ✓ — that ZIP is your own backup copy. Keep it somewhere safe (Drive, Dropbox…); we don't store it.";
+        row.appendChild(pk);
+      }
+      [["Load","hist-load"],["PDF","hist-pdf"],["Evidence pack","hist-pack"],["Delete","hist-del"]].forEach(function(pair){
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "btn btn-ghost btn-small " + pair[1];
+        b.setAttribute("data-id", t.id);
+        b.textContent = pair[0];
+        row.appendChild(b);
+      });
+      box.appendChild(row);
+    });
+  }
+
+  function loadRecordIntoState(t){
+    template = (t.rooms || []).map(function(r){
+      return { name: r.name, tasks: (r.tasks || []).map(function(x){ return x.label; }) };
+    });
+    if(!template.length){ template = defaultChecklist(); }
+    state = {
+      propertyId: t.propertyId || "",
+      cleaner: t.cleaner || "",
+      when: t.when || new Date().toISOString(),
+      rooms: normalizeRooms(clone(t.rooms || [])),
+      issues: normalizeIssues(clone(t.issues || []))
+    };
+    var prop = currentProperty();
+    if(prop){ template = clone(prop.rooms || template); state.rooms = deriveRooms(template, state.rooms); }
+    $("propertyName").value = t.propertyName || "";
+    $("propertyAddress").value = t.address || "";
+    syncHeaderFields();
+    renderPropSelect();
+    renderEditor();
+    renderAll();
+    saveDraft();
+  }
+
+  $("historyList").addEventListener("click", function(ev){
+    var t = ev.target;
+    if(!t || !t.getAttribute){ return; }
+    var id = t.getAttribute("data-id");
+    var turns = loadTurnovers();
+    var rec = null;
+    turns.forEach(function(x){ if(x.id === id){ rec = x; } });
+    if(!rec){ return; }
+    if(t.className.indexOf("hist-load") >= 0){
+      loadRecordIntoState(rec);
+    } else if(t.className.indexOf("hist-pdf") >= 0){
+      if(!isPro()){ proAlert("The PDF inspection report"); return; }
+      generateReport(rec, {});
+    } else if(t.className.indexOf("hist-pack") >= 0){
+      if(!isPro()){ proAlert("The evidence pack"); return; }
+      buildEvidencePack(rec);
+    } else if(t.className.indexOf("hist-del") >= 0){
+      (rec.rooms || []).forEach(function(r){ (r.photoIds || []).forEach(function(pid){ PhotoStore.del(pid); }); });
+      (rec.issues || []).forEach(function(it){ if(it.photoId){ PhotoStore.del(it.photoId); } });
+      storeTurnovers(turns.filter(function(x){ return x.id !== id; }));
+      renderHistory();
+      updateStorageNote();
+    }
+  });
+
+  $("saveTurnBtn").addEventListener("click", function(){
+    if(!isPro()){ proAlert("Saving turnovers to history"); return; }
+    saveDraft();
+    var rec = makeRecord(state, $("propertyName").value.trim(), $("propertyAddress").value.trim());
+    var turns = loadTurnovers();
+    turns.unshift(rec);
+    storeTurnovers(turns);
+    renderHistory();
+    alert("Turnover saved: " + rec.propertyName + " — Ready for guest: " + (rec.verdict ? "YES" : "NO") +
+          ", " + rec.issueCount + (rec.issueCount === 1 ? " issue" : " issues") + ".");
+  });
+
+  // ---- Downloads: backup JSON (includes photos) ----
+  function download(filename, content, type){
+    var blob = new Blob([content], {type: type});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 500);
+  }
+
+  function collectPhotoIds(){
+    var ids = {};
+    function scanRooms(rooms){ (rooms || []).forEach(function(r){ (r.photoIds || []).forEach(function(p){ ids[p] = true; }); }); }
+    function scanIssues(issues){ (issues || []).forEach(function(it){ if(it.photoId){ ids[it.photoId] = true; } }); }
+    if(state){ scanRooms(state.rooms); scanIssues(state.issues); }
+    loadTurnovers().forEach(function(t){ scanRooms(t.rooms); scanIssues(t.issues); });
+    return Object.keys(ids);
+  }
+
+  function buildBackup(){
+    var ids = collectPhotoIds();
+    var photos = {};
+    var chain = Promise.resolve();
+    ids.forEach(function(id){
+      chain = chain.then(function(){
+        return PhotoStore.get(id).then(function(url){ if(url){ photos[id] = url; } });
+      });
+    });
+    return chain.then(function(){
+      return {
+        app: "TurnoverLedger", version: 1,
+        exportedAt: new Date().toISOString(),
+        pro: isPro(),
+        settings: loadSettings(),
+        properties: loadProperties(),
+        turnovers: loadTurnovers(),
+        draft: lsGet(DRAFT_KEY, null),
+        photos: photos
+      };
+    });
+  }
+
+  $("exportBackupBtn").addEventListener("click", function(){
+    buildBackup().then(function(payload){
+      download("turnoverledger-backup-" + new Date().toISOString().slice(0,10) + ".json",
+               JSON.stringify(payload, null, 2), "application/json");
+    });
+  });
+
+  $("importInput").addEventListener("change", function(){
+    var f = $("importInput").files && $("importInput").files[0];
+    if(!f){ return; }
+    var reader = new FileReader();
+    reader.onload = function(){
+      var data;
+      try {
+        data = JSON.parse(String(reader.result || ""));
+        if(!data || !Array.isArray(data.turnovers) || !Array.isArray(data.properties)){ throw new Error("bad file"); }
+      } catch(e){
+        alert("That file doesn't look like a TurnoverLedger backup. Nothing was changed.");
+        $("importInput").value = "";
+        return;
+      }
+      storeProperties(data.properties);
+      storeTurnovers(data.turnovers);
+      if(data.settings){ lsSet(SETTINGS_KEY, data.settings); logoDataUrl = ""; applySettings(); }
+      if(data.pro){ try { localStorage.setItem(PRO_KEY, "1"); } catch(e){ /* ignore */ } }
+      if(data.draft){ lsSet(DRAFT_KEY, data.draft); }
+      var photos = data.photos || {};
+      var chain = Promise.resolve();
+      Object.keys(photos).forEach(function(id){
+        chain = chain.then(function(){ return PhotoStore.put(id, photos[id]); });
+      });
+      chain.then(function(){
+        if(!loadDraft()){
+          state = freshState("");
+          template = defaultChecklist();
+          syncHeaderFields();
+        } else { syncHeaderFields(); }
+        renderPropSelect();
+        renderEditor();
+        renderPro();
+        renderAll();
+        updateStorageNote();
+        alert("Backup restored: " + data.turnovers.length + " turnover(s), " +
+              data.properties.length + " propert" + (data.properties.length === 1 ? "y" : "ies") + ", " +
+              Object.keys(photos).length + " photo(s) imported.");
+        $("importInput").value = "";
+      });
+    };
+    reader.onerror = function(){ alert("That file couldn't be read. Nothing was changed."); };
+    reader.readAsText(f);
+  });
+
+  // ---- Storage note ----
+  function updateStorageNote(){
+    var el = $("storageNote");
+    if(!el){ return; }
+    if(PhotoStore.isMemoryFallback()){
+      el.textContent = "Photo storage: IndexedDB isn't available in this browser, so photos are being kept in memory only and will be lost when this tab closes. Export backups often.";
+      return;
+    }
+    PhotoStore.keys().then(function(keys){
+      var base = "Photo storage: " + keys.length + " photo(s) stored in this browser's IndexedDB.";
+      if(typeof navigator !== "undefined" && navigator.storage && navigator.storage.estimate){
+        navigator.storage.estimate().then(function(est){
+          if(est && typeof est.usage === "number"){
+            el.textContent = base + " This site is using about " + (est.usage / 1048576).toFixed(1) +
+              " MB of device storage. Photos add up — export a backup and clear old turnovers you no longer need.";
+          } else { el.textContent = base; }
+        }).catch(function(){ el.textContent = base; });
+      } else { el.textContent = base; }
+    });
+  }
+
+  // ---- Branded PDF inspection report (Pro) ----
+  function loadImg(dataUrl){
+    return new Promise(function(resolve){
+      if(typeof Image === "undefined" || !dataUrl){ resolve(null); return; }
+      var im = new Image();
+      im.onload = function(){ resolve(im); };
+      im.onerror = function(){ resolve(null); };
+      im.src = dataUrl;
+    });
+  }
+
+  function reportFilename(rec){
+    return "turnoverledger-report-" + String(rec.when || "").slice(0,10) + ".pdf";
+  }
+
+  // Load logo + every referenced photo; resolves to everything the PDF
+  // builder and the evidence-pack builder need.
+  function loadReportAssets(rec){
+    var settings = loadSettings();
+    var jobs = [loadImg(settings.logo || logoDataUrl || "")];
+    var roomPhotoIds = (rec.rooms || []).map(function(r){ return (r.photoIds || []).slice(); });
+    var flat = [];
+    roomPhotoIds.forEach(function(list){ list.forEach(function(pid){ flat.push(pid); }); });
+    (rec.issues || []).forEach(function(it){ if(it.photoId){ flat.push(it.photoId); } });
+    var urlById = {};
+    var chain = Promise.resolve();
+    flat.forEach(function(pid){
+      chain = chain.then(function(){
+        return PhotoStore.get(pid).then(function(url){ if(url){ urlById[pid] = url; } });
+      });
+    });
+
+    return chain.then(function(){
+      var imgJobs = flat.map(function(pid){
+        return urlById[pid] ? loadImg(urlById[pid]).then(function(im){ return { id: pid, img: im, url: urlById[pid] }; })
+                            : Promise.resolve({ id: pid, img: null, url: null });
+      });
+      return Promise.all(jobs.concat(imgJobs)).then(function(results){
+        var logoIm = results[0];
+        var imgById = {};
+        results.slice(1).forEach(function(r){ if(r.img){ imgById[r.id] = r; } });
+        return { settings: settings, logoIm: logoIm, imgById: imgById, urlById: urlById };
+      });
+    });
+  }
+
+  // Gating (Pro or the one free report) is the caller's job — this just builds.
+  function generateReport(rec, opts){
+    opts = opts || {};
+    if(!window.jspdf || !window.jspdf.jsPDF){
+      alert("The PDF library couldn't load. Check your internet connection and try again — everything else on this page works offline.");
+      return Promise.resolve(false);
+    }
+    return loadReportAssets(rec).then(function(assets){
+      var doc = buildPdfDoc(rec, assets.settings, assets.logoIm, assets.imgById);
+      doc.save(reportFilename(rec));
+      if(opts.onDone){ opts.onDone(); }
+      return true;
+    });
+  }
+
+  function buildPdfDoc(rec, settings, logoIm, imgById){
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({unit:"pt", format:"letter"});
+    var pageW = doc.internal.pageSize.getWidth();
+    var pageH = doc.internal.pageSize.getHeight();
+    var marginX = 56;
+    var y = 60;
+
+    function ensureSpace(h){
+      if(y + h > pageH - 56){ doc.addPage(); y = 60; }
+    }
+    function sectionHead(txt){
+      ensureSpace(34);
+      doc.setFont("helvetica","bold"); doc.setFontSize(12.5); doc.setTextColor(23,38,58);
+      doc.text(txt, marginX, y); y += 18;
+      doc.setFont("helvetica","normal"); doc.setFontSize(11.5);
+    }
+    function drawPhotoRow(items){
+      // items: [{img, url}] — up to 2 per row, each max 170 wide / 130 tall
+      var x = marginX;
+      var rowH = 0;
+      var sized = items.map(function(it){
+        var w = it.img.naturalWidth || it.img.width || 0;
+        var h = it.img.naturalHeight || it.img.height || 0;
+        if(!w || !h){ return null; }
+        var scale = Math.min(170 / w, 130 / h);
+        return { url: it.url, w: Math.round(w * scale), h: Math.round(h * scale) };
+      }).filter(function(s){ return !!s; });
+      if(!sized.length){ return; }
+      sized.forEach(function(s){ rowH = Math.max(rowH, s.h); });
+      ensureSpace(rowH + 8);
+      sized.forEach(function(s){
+        var fmt = s.url.indexOf("data:image/png") === 0 ? "PNG" : "JPEG";
+        try { doc.addImage(s.url, fmt, x, y, s.w, s.h); } catch(e){ /* skip bad image */ }
+        x += s.w + 14;
+      });
+      y += rowH + 10;
+    }
+
+    var company = settings.companyName || $("companyName").value.trim() || "Your Cleaning Company";
+    var contact = [settings.companyPhone || $("companyPhone").value.trim(),
+                   settings.companyEmail || $("companyEmail").value.trim()]
+                   .filter(function(s){ return !!s; }).join("  ·  ");
+
+    // Header: logo, company, contact
+    if(logoIm && (logoIm.naturalWidth || logoIm.width)){
+      var lw = logoIm.naturalWidth || logoIm.width, lh = logoIm.naturalHeight || logoIm.height;
+      var ls = Math.min(150 / lw, 42 / lh);
+      var logoUrl = settings.logo || logoDataUrl;
+      try {
+        doc.addImage(logoUrl, logoUrl.indexOf("data:image/png") === 0 ? "PNG" : "JPEG",
+                     marginX, y - 8, Math.round(lw * ls), Math.round(lh * ls));
+        y += Math.round(lh * ls) + 14;
+      } catch(e){ /* skip logo */ }
+    }
+    doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.setTextColor(23,38,58);
+    doc.text(company, marginX, y); y += 16;
+    if(contact){
+      doc.setFont("helvetica","normal"); doc.setFontSize(10.5); doc.setTextColor(90,107,128);
+      doc.text(contact, marginX, y); y += 8;
+    }
+    doc.setDrawColor(14,122,95); doc.setLineWidth(2.5);
+    doc.line(marginX, y, pageW - marginX, y); y += 30;
+
+    doc.setTextColor(23,38,58); doc.setFontSize(15);
+    doc.text("Turnover Inspection Report", marginX, y); y += 22;
+    doc.setFont("helvetica","normal"); doc.setFontSize(11.5); doc.setTextColor(90,107,128);
+    doc.text("Property: " + (rec.propertyName || "—") + (rec.address ? " · " + rec.address : ""), marginX, y); y += 16;
+    doc.text("Date & time: " + fmtWhen(rec.when), marginX, y); y += 16;
+    if(rec.cleaner){ doc.text("Cleaner: " + rec.cleaner, marginX, y); y += 16; }
+    y += 8;
+
+    // Verdict
+    var c = completion(rec.rooms || []);
+    doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(23,38,58);
+    doc.text("Ready for guest: ", marginX, y);
+    if(rec.verdict){ doc.setTextColor(10,92,72); doc.text("YES", marginX + 118, y); }
+    else { doc.setTextColor(159,39,39); doc.text("NO", marginX + 118, y); }
+    doc.setTextColor(23,38,58); y += 18;
+    doc.setFont("helvetica","normal"); doc.setFontSize(11.5);
+    doc.text("Checklist: " + c.done + " of " + c.total + " tasks handled (" + c.pct + "%) · Rooms signed off: " +
+             roomsSignedOff(rec.rooms || []) + " of " + (rec.rooms || []).length, marginX, y);
+    y += 26;
+
+    // Room-by-room results
+    (rec.rooms || []).forEach(function(room){
+      var s = roomStats(room);
+      var stTxt = roomStatus(room) === "na" ? "N/A" : (roomStatus(room) === "ready" ? "Ready" : "NOT ready");
+      sectionHead(room.name + " — " + s.done + "/" + s.total + " tasks · " + stTxt);
+      room.tasks.forEach(function(task){
+        ensureSpace(17);
+        doc.setTextColor(23,38,58);
+        var label = doc.splitTextToSize(task.label, pageW - marginX * 2 - 90);
+        doc.text(label[0], marginX + 6, y);
+        if(task.na){ doc.setTextColor(90,107,128); doc.text("N/A", pageW - marginX - 52, y); }
+        else if(task.done){ doc.setTextColor(10,92,72); doc.text("Done", pageW - marginX - 52, y); }
+        else { doc.setTextColor(159,39,39); doc.text("NOT DONE", pageW - marginX - 52, y); }
+        y += 17;
+      });
+      if(room.note){
+        ensureSpace(17);
+        doc.setTextColor(90,107,128); doc.setFont("helvetica","italic");
+        doc.text("Note: " + room.note, marginX + 6, y);
+        doc.setFont("helvetica","normal"); doc.setTextColor(23,38,58);
+        y += 17;
+      }
+      var pics = (room.photoIds || []).map(function(pid){ return imgById[pid]; }).filter(function(x){ return !!x; });
+      for(var i = 0; i < pics.length; i += 2){ drawPhotoRow(pics.slice(i, i + 2)); }
+      y += 8;
+    });
+
+    // Issues
+    sectionHead("Damage & issues (" + ((rec.issues || []).length) + ")");
+    if(!(rec.issues || []).length){
+      doc.setTextColor(90,107,128);
+      doc.text("No damage or issues were found during this turnover.", marginX, y);
+      doc.setTextColor(23,38,58); y += 18;
+    } else {
+      rec.issues.forEach(function(it){
+        ensureSpace(34);
+        doc.setFont("helvetica","bold"); doc.setFontSize(11.5);
+        doc.text((it.item || "Issue") + " — " + (it.room || "") + " · Severity: " + (it.severity || "Low") +
+                 (it.resolved ? " · Resolved" : ""), marginX, y);
+        doc.setFont("helvetica","normal"); y += 16;
+        if(it.description){
+          doc.setTextColor(90,107,128);
+          doc.splitTextToSize(it.description, pageW - marginX * 2).forEach(function(line){
+            ensureSpace(15);
+            doc.text(line, marginX, y); y += 15;
+          });
+          doc.setTextColor(23,38,58);
+        }
+        if(it.photoId && imgById[it.photoId]){ drawPhotoRow([imgById[it.photoId]]); }
+        y += 6;
+      });
+    }
+    y += 12;
+
+    // Signature
+    ensureSpace(70);
+    doc.setFont("helvetica","bold"); doc.setFontSize(12);
+    doc.text("Sign-off", marginX, y); y += 26;
+    doc.setFont("helvetica","normal"); doc.setFontSize(10.5); doc.setTextColor(90,107,128);
+    var colW = (pageW - marginX * 2 - 30) / 2;
+    doc.setDrawColor(23,38,58); doc.setLineWidth(0.8);
+    doc.line(marginX, y, marginX + colW, y);
+    doc.line(marginX + colW + 30, y, marginX + colW * 2 + 30, y);
+    y += 15;
+    doc.text("Inspected by" + (rec.cleaner ? " — " + rec.cleaner : ""), marginX, y);
+    doc.text("Signature & date", marginX + colW + 30, y);
+    y += 28;
+    doc.setFontSize(9.5);
+    doc.text("Report generated with TurnoverLedger · " + company + (contact ? " · " + contact : ""), marginX, y);
+
+    return doc;
+  }
+
+  // ---- Evidence pack (Pro): report PDF + ORIGINAL photos + data record,
+  // zipped in the browser. The pack is the user's own backup — we never
+  // store a copy, and the saved turnover is flagged once one is exported.
+  function dataUrlToBase64(url){
+    var i = String(url || "").indexOf(",");
+    return i >= 0 ? String(url).slice(i + 1) : String(url || "");
+  }
+  function safeName(s, fallback){
+    var out = String(s || "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 44);
+    return out || fallback || "photo";
+  }
+
+  function buildEvidencePack(rec){
+    if(!window.jspdf || !window.jspdf.jsPDF){
+      alert("The PDF library couldn't load. Check your internet connection and try again.");
+      return;
+    }
+    if(!window.JSZip){
+      alert("The ZIP library couldn't load. Check your internet connection and try again — the report PDF button still works on its own.");
+      return;
+    }
+    loadReportAssets(rec).then(function(assets){
+      var doc = buildPdfDoc(rec, assets.settings, assets.logoIm, assets.imgById);
+      var zip = new window.JSZip();
+      var fileList = [];
+
+      var pdfName = reportFilename(rec);
+      zip.file(pdfName, doc.output("blob"));
+      fileList.push(pdfName);
+
+      (rec.rooms || []).forEach(function(room){
+        var n = 0;
+        (room.photoIds || []).forEach(function(pid){
+          var url = assets.urlById[pid];
+          if(!url){ return; }
+          n++;
+          var name = "Original_Room_Photos/" + safeName(room.name, "Room") + "_" + n + ".jpg";
+          zip.file(name, dataUrlToBase64(url), {base64: true});
+          fileList.push(name);
+        });
+      });
+      (rec.issues || []).forEach(function(it, ii){
+        if(!it.photoId){ return; }
+        var url = assets.urlById[it.photoId];
+        if(!url){ return; }
+        var name = "Damage_and_Issue_Photos/" + safeName(it.item, "Issue_" + (ii + 1)) + ".jpg";
+        zip.file(name, dataUrlToBase64(url), {base64: true});
+        fileList.push(name);
+      });
+
+      var recordJson = clone(rec);
+      recordJson.exportedAt = new Date().toISOString();
+      zip.file("Inspection_Record.json", JSON.stringify(recordJson, null, 2));
+      fileList.push("Inspection_Record.json");
+      fileList.push("Report_Manifest.txt");
+
+      var c = completion(rec.rooms || []);
+      var lines = [
+        "TurnoverLedger — Evidence Pack",
+        "Report ID: " + rec.id,
+        "Property: " + (rec.propertyName || "") + (rec.address ? " · " + rec.address : ""),
+        "Date & time: " + fmtWhen(rec.when),
+        "Cleaner: " + (rec.cleaner || ""),
+        "Ready for guest: " + (rec.verdict ? "YES" : "NO"),
+        "Checklist: " + c.done + " of " + c.total + " tasks handled (" + c.pct + "%)",
+        "Issues logged: " + ((rec.issues || []).length),
+        "",
+        "Files in this pack:"
+      ].concat(fileList.map(function(f){ return " - " + f; })).concat([
+        "",
+        "This pack is your own backup — keep it somewhere safe (for example Drive or Dropbox).",
+        "TurnoverLedger does not store a copy of it."
+      ]);
+      zip.file("Report_Manifest.txt", lines.join("\n"));
+
+      return zip.generateAsync({type: "blob"}).then(function(blob){
+        download("turnoverledger-evidence-" + safeName(rec.propertyName, "property").toLowerCase() +
+                 "-" + String(rec.when || "").slice(0,10) + ".zip", blob, "application/zip");
+        var turns = loadTurnovers();
+        var changed = false;
+        turns.forEach(function(t){ if(t.id === rec.id){ t.evidenceExported = true; changed = true; } });
+        if(changed){ storeTurnovers(turns); }
+        renderHistory();
+        alert("Evidence pack downloaded for " + (rec.propertyName || "this property") +
+              ". Keep it somewhere safe — it's your own backup copy; we don't store it.");
+      });
+    }).catch(function(){
+      alert("The evidence pack couldn't be built. Try again — your saved turnover is unchanged.");
+    });
+  }
+
+  $("pdfBtn").addEventListener("click", function(){
+    var pro = isPro();
+    if(!pro && !freeReportAvailable()){ proAlert("The PDF inspection report"); return; }
+    saveDraft();
+    var rec = makeRecord(state, $("propertyName").value.trim(), $("propertyAddress").value.trim());
+    generateReport(rec, { onDone: function(){
+      if(!pro){
+        consumeFreeReport();
+        updatePdfNote();
+      }
+    }});
+  });
+
+  // ---- Pro gate rendering ----
+  function updatePdfNote(){
+    var el = $("pdfNote");
+    if(!el){ return; }
+    if(isPro()){
+      el.textContent = "Your branded report — logo, checklist results, photos, issue log, and the ready-for-guest verdict. This is the copy you send the host or owner.";
+    } else if(freeReportAvailable()){
+      el.textContent = "Your first branded PDF report is FREE — no credit card required, no watermark. It carries your logo, checklist results, photos, and the issue log — the copy you send the host or owner. After your free one, reports are a Pro feature.";
+    } else {
+      el.textContent = "Pro feature — you've used your free report. The branded PDF carries your logo, checklist results, photos, and the issue log. It's the copy you send the host or owner.";
+    }
+  }
+  function renderPro(){
+    var pro = isPro();
+    $("proGate").style.display = pro ? "none" : "block";
+    $("proArea").style.display = pro ? "block" : "none";
+    $("propTools").style.display = pro ? "block" : "none";
+    $("editorCard").style.display = pro ? "block" : "none";
+    updatePdfNote();
+    if(pro){ renderHistory(); }
+  }
+  $("unlockBtn").addEventListener("click", function(){
+    try { localStorage.setItem(PRO_KEY, "1"); } catch(e){ /* ignore */ }
+    renderPro();
+    updateStorageNote();
+  });
+  $("lockBtn").addEventListener("click", function(){
+    try { localStorage.removeItem(PRO_KEY); } catch(e){ /* ignore */ }
+    renderPro();
+  });
+
+  // ---- Init ----
+  applySettings();
+  if(!loadDraft()){
+    state = freshState("");
+  }
+  syncHeaderFields();
+  renderPropSelect();
+  renderEditor();
+  renderPro();
+  renderAll();
+  updateStorageNote();
+})();
+</script>
+</body>
+</html>
